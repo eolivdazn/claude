@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WealthPath — Clarity and control over your financial future</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --ink:#0c1a14;            /* deepest forest ink */
+    --ink-2:#10231b;
+    --panel:#13291f;
+    --panel-2:#19332689;
+    --line:rgba(220,238,228,.10);
+    --line-strong:rgba(220,238,228,.18);
+    --cream:#f4efe3;
+    --cream-dim:#cfd6cc;
+    --muted:#8ea395;
+    --copper:#cf9b54;          /* warm gold/copper accent */
+    --copper-soft:#e4c187;
+    --sage:#7fc99a;            /* positive */
+    --sage-deep:#3f9d6a;
+    --amber:#e2a857;           /* caution */
+    --rose:#d98a72;            /* alert */
+    --radius:20px;
+    --radius-sm:13px;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --shadow:0 30px 70px -30px rgba(0,0,0,.7);
+    font-synthesis:none;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--ink);
+    color:var(--cream);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+
+  /* Atmosphere: layered radial glows + grain */
+  .atmosphere{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .atmosphere .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5}
+  .glow.a{width:55vw;height:55vw;top:-18vw;right:-12vw;background:radial-gradient(circle,rgba(207,155,84,.32),transparent 65%)}
+  .glow.b{width:48vw;height:48vw;bottom:-20vw;left:-15vw;background:radial-gradient(circle,rgba(63,157,106,.30),transparent 65%)}
+  .glow.c{width:30vw;height:30vw;top:35%;left:42%;background:radial-gradient(circle,rgba(127,201,154,.14),transparent 70%)}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+  .wrap{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 28px}
+
+  /* Display type */
+  .serif{font-family:"Fraunces",Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-.01em}
+  .eyebrow{font-size:.74rem;letter-spacing:.22em;text-transform:uppercase;color:var(--copper-soft);font-weight:600}
+
+  /* ============ NAV ============ */
+  header.nav{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);
+    background:linear-gradient(to bottom,rgba(12,26,20,.85),rgba(12,26,20,.4));
+    border-bottom:1px solid var(--line)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+  .brand{display:flex;align-items:center;gap:12px;cursor:pointer}
+  .mark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+    background:linear-gradient(145deg,var(--copper),#a9742f);box-shadow:0 8px 22px -8px rgba(207,155,84,.7)}
+  .mark svg{width:21px;height:21px}
+  .brand b{font-family:"Fraunces",serif;font-weight:600;font-size:1.32rem;letter-spacing:-.02em}
+  .nav-links{display:flex;gap:30px;align-items:center}
+  .nav-links a{color:var(--cream-dim);text-decoration:none;font-size:.92rem;font-weight:500;transition:color .2s}
+  .nav-links a:hover{color:var(--cream)}
+  @media(max-width:760px){.nav-links a:not(.nav-cta){display:none}}
+
+  .btn{font-family:inherit;font-size:.94rem;font-weight:600;border:none;cursor:pointer;
+    border-radius:999px;padding:13px 26px;transition:transform .25s var(--ease),box-shadow .25s,background .25s;
+    display:inline-flex;align-items:center;gap:9px}
+  .btn-primary{background:linear-gradient(135deg,var(--copper-soft),var(--copper));color:#231405;
+    box-shadow:0 14px 30px -12px rgba(207,155,84,.65)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 38px -12px rgba(207,155,84,.8)}
+  .btn-ghost{background:rgba(244,239,227,.06);color:var(--cream);border:1px solid var(--line-strong)}
+  .btn-ghost:hover{background:rgba(244,239,227,.12);transform:translateY(-2px)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+  /* ============ VIEW SYSTEM ============ */
+  .view{display:none;animation:viewIn .7s var(--ease)}
+  .view.active{display:block}
+  @keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ============ HERO ============ */
+  .hero{padding:clamp(56px,11vh,128px) 0 90px;position:relative}
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:60px;align-items:center}
+  @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:42px}}
+  .hero h1{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(2.7rem,6vw,4.6rem);
+    line-height:1.02;letter-spacing:-.025em;margin:22px 0 0}
+  .hero h1 em{font-style:italic;color:var(--copper-soft)}
+  .hero p.lede{font-size:clamp(1.05rem,2vw,1.25rem);color:var(--cream-dim);max-width:30ch;margin:24px 0 36px}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .trust{display:flex;gap:26px;margin-top:48px;flex-wrap:wrap}
+  .trust .t{}
+  .trust .n{font-family:"Fraunces",serif;font-size:1.7rem;font-weight:600;color:var(--cream)}
+  .trust .l{font-size:.8rem;color:var(--muted);letter-spacing:.04em}
+
+  /* floating preview card in hero */
+  .float-card{position:relative;background:linear-gradient(160deg,var(--panel),var(--ink-2));
+    border:1px solid var(--line-strong);border-radius:24px;padding:26px;box-shadow:var(--shadow);
+    animation:floaty 7s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  .float-card .fc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+  .float-card .fc-ring{display:grid;place-items:center;margin:6px auto 16px}
+  .mini-rows{display:grid;gap:11px}
+  .mini-row{display:flex;justify-content:space-between;align-items:center;font-size:.9rem}
+  .mini-bar{height:7px;border-radius:6px;background:rgba(244,239,227,.1);overflow:hidden;margin-top:5px}
+  .mini-bar > i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--sage),var(--sage-deep))}
+  .pill{font-size:.72rem;font-weight:600;padding:5px 11px;border-radius:999px;letter-spacing:.03em}
+  .pill.strong{background:rgba(127,201,154,.16);color:var(--sage)}
+
+  /* ============ INTAKE ============ */
+  .intake{min-height:calc(100vh - 78px);display:flex;align-items:center;padding:50px 0}
+  .intake-card{width:100%;max-width:640px;margin:0 auto;background:linear-gradient(165deg,var(--panel),var(--ink-2));
+    border:1px solid var(--line-strong);border-radius:28px;padding:clamp(30px,5vw,52px);box-shadow:var(--shadow);position:relative}
+  .progress{display:flex;align-items:center;gap:14px;margin-bottom:38px}
+  .progress-track{flex:1;height:6px;border-radius:6px;background:rgba(244,239,227,.09);overflow:hidden}
+  .progress-fill{height:100%;border-radius:6px;width:0;background:linear-gradient(90deg,var(--copper-soft),var(--copper));transition:width .6s var(--ease)}
+  .progress-label{font-size:.78rem;color:var(--muted);letter-spacing:.08em;font-weight:600;white-space:nowrap}
+
+  .step{display:none}
+  .step.active{display:block;animation:stepIn .55s var(--ease)}
+  @keyframes stepIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  .step .q-num{font-size:.78rem;color:var(--copper-soft);font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+  .step h2{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(1.7rem,3.6vw,2.4rem);
+    line-height:1.1;letter-spacing:-.02em;margin:10px 0 8px}
+  .step .hint{color:var(--muted);font-size:.96rem;margin-bottom:26px}
+
+  /* currency input */
+  .money{position:relative;margin-bottom:8px}
+  .money .cur{position:absolute;left:22px;top:50%;transform:translateY(-50%);font-family:"Fraunces",serif;
+    font-size:1.9rem;color:var(--copper-soft);pointer-events:none}
+  .money input{width:100%;background:rgba(0,0,0,.22);border:1.5px solid var(--line-strong);border-radius:16px;
+    color:var(--cream);font-family:"Fraunces",serif;font-size:2rem;font-weight:500;
+    padding:18px 22px 18px 50px;outline:none;transition:border-color .25s,box-shadow .25s;-moz-appearance:textfield}
+  .money input::-webkit-outer-spin-button,.money input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .money input:focus{border-color:var(--copper);box-shadow:0 0 0 4px rgba(207,155,84,.14)}
+  .money input::placeholder{color:#5d7268;font-weight:400}
+  .field-meta{font-size:.84rem;color:var(--muted);min-height:20px;margin-bottom:8px}
+
+  /* goal choices */
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:520px){.choices{grid-template-columns:1fr}}
+  .choice{display:flex;align-items:center;gap:14px;padding:18px 18px;border-radius:16px;cursor:pointer;
+    background:rgba(0,0,0,.18);border:1.5px solid var(--line-strong);transition:all .22s var(--ease);text-align:left}
+  .choice:hover{border-color:var(--copper-soft);transform:translateY(-2px);background:rgba(207,155,84,.06)}
+  .choice.sel{border-color:var(--copper);background:rgba(207,155,84,.12);box-shadow:0 0 0 3px rgba(207,155,84,.12)}
+  .choice .ico{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;
+    background:rgba(207,155,84,.14)}
+  .choice .ico svg{width:21px;height:21px;stroke:var(--copper-soft)}
+  .choice b{font-size:1rem;font-weight:600;display:block}
+  .choice span{font-size:.8rem;color:var(--muted)}
+
+  .step-nav{display:flex;justify-content:space-between;align-items:center;margin-top:34px}
+  .link-back{background:none;border:none;color:var(--muted);font-family:inherit;font-size:.92rem;cursor:pointer;
+    display:inline-flex;gap:7px;align-items:center;padding:8px 4px;transition:color .2s}
+  .link-back:hover{color:var(--cream)}
+  .link-back[hidden]{visibility:hidden}
+  kbd{font-family:inherit;font-size:.7rem;background:rgba(244,239,227,.08);border:1px solid var(--line);
+    border-radius:6px;padding:2px 7px;color:var(--muted)}
+
+  /* ============ DASHBOARD ============ */
+  .dash{padding:46px 0 100px}
+  .dash-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:34px}
+  .dash-head h2{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(2rem,4.5vw,3rem);
+    letter-spacing:-.02em;line-height:1.05}
+  .dash-head h2 em{font-style:italic;color:var(--copper-soft)}
+  .grid{display:grid;gap:20px}
+  .g-top{grid-template-columns:1.1fr 1fr;align-items:stretch}
+  @media(max-width:880px){.g-top{grid-template-columns:1fr}}
+  .card{background:linear-gradient(165deg,var(--panel),rgba(16,35,27,.6));border:1px solid var(--line);
+    border-radius:var(--radius);padding:28px;position:relative;overflow:hidden}
+  .card h3{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:20px}
+
+  /* health badge */
+  .health-card{display:flex;flex-direction:column;justify-content:space-between}
+  .health-badge{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;
+    font-weight:600;font-size:.92rem;align-self:flex-start}
+  .health-score{font-family:"Fraunces",serif;font-size:clamp(2.6rem,6vw,3.8rem);font-weight:600;line-height:1;margin:18px 0 6px}
+  .health-desc{color:var(--cream-dim);font-size:.98rem;max-width:36ch}
+  .dot{width:9px;height:9px;border-radius:50%}
+
+  /* ring (savings rate) */
+  .ring-card{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring-wrap{position:relative;width:200px;height:200px}
+  .ring-wrap svg{transform:rotate(-90deg)}
+  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring-center .pct{font-family:"Fraunces",serif;font-size:3rem;font-weight:600;line-height:1}
+  .ring-center .pct small{font-size:1.3rem;color:var(--cream-dim)}
+  .ring-center .cap{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+
+  /* income vs expenses */
+  .flow-card .legend{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:22px}
+  .legend span{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--cream-dim)}
+  .bar-row{margin-bottom:20px}
+  .bar-row .bl{display:flex;justify-content:space-between;font-size:.92rem;margin-bottom:9px}
+  .bar-row .bl b{font-family:"Fraunces",serif;font-size:1.18rem;font-weight:600}
+  .bar{height:16px;border-radius:10px;background:rgba(0,0,0,.28);overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:10px;width:0;transition:width 1.1s var(--ease)}
+  .bar .fill-income{background:linear-gradient(90deg,var(--sage),var(--sage-deep))}
+  .bar .fill-exp{background:linear-gradient(90deg,var(--copper-soft),var(--copper))}
+  .leftover{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .leftover .lo-l{font-size:.86rem;color:var(--muted)}
+  .leftover .lo-v{font-family:"Fraunces",serif;font-size:1.6rem;font-weight:600}
+
+  /* recommendations */
+  .recs{margin-top:20px}
+  .recs h3.section{font-family:"Fraunces",serif;font-weight:500;font-size:1.6rem;margin-bottom:18px;letter-spacing:-.01em}
+  .rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .rec{background:linear-gradient(165deg,var(--panel),rgba(16,35,27,.5));border:1px solid var(--line);
+    border-radius:var(--radius-sm);padding:24px;position:relative;transition:transform .3s var(--ease),border-color .3s}
+  .rec:hover{transform:translateY(-4px);border-color:var(--line-strong)}
+  .rec .ri{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;margin-bottom:16px;
+    background:rgba(207,155,84,.13)}
+  .rec .ri svg{width:22px;height:22px;stroke:var(--copper-soft)}
+  .rec b{display:block;font-size:1.05rem;margin-bottom:7px}
+  .rec p{font-size:.91rem;color:var(--cream-dim);line-height:1.5}
+  .rec .tag{position:absolute;top:20px;right:20px;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--copper-soft);font-weight:600}
+
+  .dash-foot{margin-top:40px;text-align:center}
+  .restart{background:none;border:none;color:var(--muted);font-family:inherit;cursor:pointer;font-size:.9rem;
+    text-decoration:underline;text-underline-offset:3px;transition:color .2s}
+  .restart:hover{color:var(--cream)}
+
+  /* ============ BOOKING ============ */
+  .book{padding:90px 0;position:relative}
+  .book-card{background:linear-gradient(160deg,var(--panel),var(--ink-2));border:1px solid var(--line-strong);
+    border-radius:28px;overflow:hidden;box-shadow:var(--shadow)}
+  .book-grid{display:grid;grid-template-columns:.85fr 1.15fr}
+  @media(max-width:820px){.book-grid{grid-template-columns:1fr}}
+  .book-aside{padding:46px;background:linear-gradient(165deg,rgba(207,155,84,.14),rgba(63,157,106,.06));
+    border-right:1px solid var(--line);display:flex;flex-direction:column}
+  .book-aside h2{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(1.8rem,3.6vw,2.5rem);
+    line-height:1.08;letter-spacing:-.02em;margin:14px 0 14px}
+  .book-aside p{color:var(--cream-dim);font-size:.98rem;margin-bottom:26px}
+  .perks{list-style:none;display:grid;gap:14px;margin-top:auto}
+  .perks li{display:flex;gap:12px;align-items:flex-start;font-size:.92rem;color:var(--cream-dim)}
+  .perks .chk{width:22px;height:22px;border-radius:50%;background:rgba(127,201,154,.18);display:grid;place-items:center;flex-shrink:0;margin-top:1px}
+  .perks .chk svg{width:12px;height:12px;stroke:var(--sage)}
+
+  .book-form{padding:46px}
+  .frow{margin-bottom:20px}
+  .frow.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:480px){.frow.two{grid-template-columns:1fr}}
+  label{display:block;font-size:.82rem;font-weight:600;color:var(--cream-dim);margin-bottom:8px;letter-spacing:.02em}
+  .inp{width:100%;background:rgba(0,0,0,.22);border:1.5px solid var(--line-strong);border-radius:13px;
+    color:var(--cream);font-family:inherit;font-size:.98rem;padding:14px 16px;outline:none;transition:border-color .25s,box-shadow .25s}
+  .inp:focus{border-color:var(--copper);box-shadow:0 0 0 4px rgba(207,155,84,.13)}
+  .inp::placeholder{color:#5d7268}
+  textarea.inp{resize:vertical;min-height:92px}
+  select.inp{appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%238ea395' stroke-width='2'%3E%3Cpath d='M3 5l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 16px center}
+  .book-form .btn-primary{width:100%;justify-content:center;margin-top:6px}
+  .form-note{font-size:.78rem;color:var(--muted);text-align:center;margin-top:14px}
+
+  .booked{text-align:center;padding:30px 10px;animation:viewIn .6s var(--ease)}
+  .booked .seal{width:74px;height:74px;border-radius:50%;margin:0 auto 22px;display:grid;place-items:center;
+    background:rgba(127,201,154,.16)}
+  .booked .seal svg{width:34px;height:34px;stroke:var(--sage)}
+  .booked h3{font-family:"Fraunces",serif;font-weight:500;font-size:1.9rem;margin-bottom:10px}
+  .booked p{color:var(--cream-dim);max-width:34ch;margin:0 auto}
+
+  /* footer */
+  footer.foot{border-top:1px solid var(--line);padding:32px 0;text-align:center;color:var(--muted);font-size:.84rem;position:relative;z-index:2}
+
+  .reveal{opacity:0;transform:translateY(22px)}
+  .reveal.in{opacity:1;transform:none;transition:opacity .8s var(--ease),transform .8s var(--ease)}
+</style>
+</head>
+<body>
+<div class="atmosphere"><div class="glow a"></div><div class="glow b"></div><div class="glow c"></div></div>
+<div class="grain"></div>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <div class="brand" onclick="go('home')">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#231405" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 17l5-5 4 3 7-8"/><path d="M16 7h4v4"/>
+        </svg>
+      </span>
+      <b>WealthPath</b>
+    </div>
+    <nav class="nav-links">
+      <a onclick="go('home')">Home</a>
+      <a onclick="startIntake()">Check-up</a>
+      <a href="#book" onclick="go('home')">Book a call</a>
+      <button class="btn btn-primary nav-cta" onclick="startIntake()">Start free check-up</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ============ HOME VIEW ============ -->
+<section id="view-home" class="view active">
+  <div class="wrap hero">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Personal finance coaching</span>
+        <h1>Clarity and <em>control</em> over your financial future.</h1>
+        <p class="lede">Answer four quick questions and get an instant read on your money — plus a simple plan to move forward.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary" onclick="startIntake()">
+            Start your free check-up
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#231405" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <a href="#book" class="btn btn-ghost">Book a consultation</a>
+        </div>
+        <div class="trust">
+          <div class="t"><div class="n">2 min</div><div class="l">To complete</div></div>
+          <div class="t"><div class="n">$0</div><div class="l">No cost, no signup</div></div>
+          <div class="t"><div class="n">1:1</div><div class="l">Human coaching</div></div>
+        </div>
+      </div>
+
+      <!-- floating preview -->
+      <div class="float-card" aria-hidden="true">
+        <div class="fc-top">
+          <span class="eyebrow">Your snapshot</span>
+          <span class="pill strong">Strong</span>
+        </div>
+        <div class="fc-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(244,239,227,.1)" stroke-width="11"/>
+            <circle cx="60" cy="60" r="50" fill="none" stroke="#cf9b54" stroke-width="11" stroke-linecap="round"
+              stroke-dasharray="314" stroke-dashoffset="86" transform="rotate(-90 60 60)"/>
+            <text x="60" y="58" text-anchor="middle" font-family="Fraunces,serif" font-size="26" font-weight="600" fill="#f4efe3">28%</text>
+            <text x="60" y="76" text-anchor="middle" font-size="9" letter-spacing="1.5" fill="#8ea395">SAVINGS RATE</text>
+          </svg>
+        </div>
+        <div class="mini-rows">
+          <div>
+            <div class="mini-row"><span style="color:var(--cream-dim)">Income</span><b style="font-family:Fraunces,serif">$6,200</b></div>
+            <div class="mini-bar"><i style="width:100%"></i></div>
+          </div>
+          <div>
+            <div class="mini-row"><span style="color:var(--cream-dim)">Expenses</span><b style="font-family:Fraunces,serif">$4,450</b></div>
+            <div class="mini-bar"><i style="width:72%;background:linear-gradient(90deg,var(--copper-soft),var(--copper))"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOKING -->
+  <section class="book" id="book">
+    <div class="wrap">
+      <div class="book-card reveal">
+        <div class="book-grid">
+          <div class="book-aside">
+            <span class="eyebrow">Talk to a coach</span>
+            <h2>Book your free consultation.</h2>
+            <p>A 30-minute call with a WealthPath coach to turn your snapshot into a personalized roadmap.</p>
+            <ul class="perks">
+              <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span> No-pressure, no jargon</li>
+              <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span> A written action plan you keep</li>
+              <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span> Built around your goal</li>
+            </ul>
+          </div>
+          <div class="book-form">
+            <form id="bookForm" novalidate>
+              <div class="frow two">
+                <div><label for="bName">Full name</label><input class="inp" id="bName" placeholder="Jordan Avery" required></div>
+                <div><label for="bEmail">Email</label><input class="inp" id="bEmail" type="email" placeholder="jordan@email.com" required></div>
+              </div>
+              <div class="frow">
+                <label for="bTime">Preferred time</label>
+                <select class="inp" id="bTime" required>
+                  <option value="" disabled selected>Choose a time that suits you</option>
+                  <option>Weekday mornings (8–11am)</option>
+                  <option>Weekday afternoons (12–4pm)</option>
+                  <option>Weekday evenings (5–8pm)</option>
+                  <option>Weekends</option>
+                </select>
+              </div>
+              <div class="frow">
+                <label for="bNotes">Anything you'd like to focus on? <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <textarea class="inp" id="bNotes" placeholder="e.g. paying off my car loan, saving for a deposit…"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">Request my consultation</button>
+              <p class="form-note">We'll confirm by email within one business day.</p>
+            </form>
+            <div class="booked" id="bookedMsg" style="display:none">
+              <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <h3 id="bookedName">You're booked in.</h3>
+              <p>Thanks — a WealthPath coach will reach out to confirm your consultation shortly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ============ INTAKE VIEW ============ -->
+<section id="view-intake" class="view">
+  <div class="wrap intake">
+    <div class="intake-card">
+      <div class="progress">
+        <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+        <span class="progress-label" id="progLabel">Step 1 of 4</span>
+      </div>
+
+      <!-- STEP 1: income -->
+      <div class="step active" data-step="0">
+        <span class="q-num">Question 01</span>
+        <h2>What's your monthly income?</h2>
+        <p class="hint">Your take-home pay each month, after tax.</p>
+        <div class="money"><span class="cur">$</span><input id="inIncome" type="number" inputmode="numeric" min="0" placeholder="0" autocomplete="off"></div>
+        <div class="field-meta" id="metaIncome"></div>
+        <div class="step-nav">
+          <button class="link-back" hidden>← Back</button>
+          <button class="btn btn-primary" data-next>Continue <kbd>Enter ⏎</kbd></button>
+        </div>
+      </div>
+
+      <!-- STEP 2: expenses -->
+      <div class="step" data-step="1">
+        <span class="q-num">Question 02</span>
+        <h2>What are your monthly expenses?</h2>
+        <p class="hint">Everything you typically spend in a month — rent, bills, food, the lot.</p>
+        <div class="money"><span class="cur">$</span><input id="inExpenses" type="number" inputmode="numeric" min="0" placeholder="0" autocomplete="off"></div>
+        <div class="field-meta" id="metaExpenses"></div>
+        <div class="step-nav">
+          <button class="link-back" data-back>← Back</button>
+          <button class="btn btn-primary" data-next>Continue <kbd>Enter ⏎</kbd></button>
+        </div>
+      </div>
+
+      <!-- STEP 3: savings -->
+      <div class="step" data-step="2">
+        <span class="q-num">Question 03</span>
+        <h2>How much have you saved?</h2>
+        <p class="hint">Total savings you have set aside right now.</p>
+        <div class="money"><span class="cur">$</span><input id="inSavings" type="number" inputmode="numeric" min="0" placeholder="0" autocomplete="off"></div>
+        <div class="field-meta" id="metaSavings"></div>
+        <div class="step-nav">
+          <button class="link-back" data-back>← Back</button>
+          <button class="btn btn-primary" data-next>Continue <kbd>Enter ⏎</kbd></button>
+        </div>
+      </div>
+
+      <!-- STEP 4: goal -->
+      <div class="step" data-step="3">
+        <span class="q-num">Question 04</span>
+        <h2>What's your main goal?</h2>
+        <p class="hint">Pick the one that matters most right now.</p>
+        <div class="choices" id="goalChoices">
+          <button class="choice" data-goal="save">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 1 3.3 2.5 4.3V19h3v-2h3v2h3v-2.5c1-.6 1.5-1.1 2-2h2v-4h-2c-.3-.7-.7-1.3-1.5-1.8L19 5z"/><path d="M2 9v1c0 1 1 1 1 1"/><circle cx="16" cy="11" r=".5" fill="currentColor"/></svg></span>
+            <span><b>Save more</b><span>Build a stronger cushion</span></span>
+          </button>
+          <button class="choice" data-goal="debt">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h12"/><path d="M17 16l4 4M21 16l-4 4"/></svg></span>
+            <span><b>Get out of debt</b><span>Clear what you owe</span></span>
+          </button>
+          <button class="choice" data-goal="invest">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 7-8"/><path d="M16 7h4v4"/></svg></span>
+            <span><b>Invest</b><span>Grow your wealth</span></span>
+          </button>
+          <button class="choice" data-goal="home">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span>
+            <span><b>Buy a home</b><span>Save for a deposit</span></span>
+          </button>
+        </div>
+        <div class="step-nav">
+          <button class="link-back" data-back>← Back</button>
+          <button class="btn btn-primary" id="finishBtn" disabled>See my results
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#231405" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD VIEW ============ -->
+<section id="view-dash" class="view">
+  <div class="wrap dash">
+    <div class="dash-head">
+      <div>
+        <span class="eyebrow">Your financial snapshot</span>
+        <h2 id="dashGoalLine">Here's where you <em>stand</em>.</h2>
+      </div>
+      <button class="btn btn-ghost" onclick="bookFromDash()">Book a coaching call</button>
+    </div>
+
+    <div class="grid g-top">
+      <!-- health -->
+      <div class="card health-card">
+        <h3>Financial health</h3>
+        <div>
+          <div class="health-badge" id="healthBadge"><span class="dot"></span><span id="healthLabel">—</span></div>
+          <div class="health-score serif" id="healthScore">—</div>
+          <p class="health-desc" id="healthDesc"></p>
+        </div>
+      </div>
+      <!-- savings rate ring -->
+      <div class="card ring-card">
+        <h3 style="position:absolute;top:28px;left:28px">Savings rate</h3>
+        <div class="ring-wrap">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(244,239,227,.09)" stroke-width="16"/>
+            <circle id="ringFill" cx="100" cy="100" r="84" fill="none" stroke="#cf9b54" stroke-width="16"
+              stroke-linecap="round" stroke-dasharray="527.8" stroke-dashoffset="527.8"
+              style="transition:stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1)"/>
+          </svg>
+          <div class="ring-center">
+            <div class="pct"><span id="ringPct">0</span><small>%</small></div>
+            <div class="cap">of income saved</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- income vs expenses -->
+    <div class="card flow-card" style="margin-top:20px">
+      <h3>Income vs. expenses</h3>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--sage)"></span> Income</span>
+        <span><span class="dot" style="background:var(--copper)"></span> Expenses</span>
+      </div>
+      <div class="bar-row">
+        <div class="bl"><span style="color:var(--cream-dim)">Monthly income</span><b id="lblIncome">$0</b></div>
+        <div class="bar"><i class="fill-income" id="barIncome"></i></div>
+      </div>
+      <div class="bar-row">
+        <div class="bl"><span style="color:var(--cream-dim)">Monthly expenses</span><b id="lblExpenses">$0</b></div>
+        <div class="bar"><i class="fill-exp" id="barExpenses"></i></div>
+      </div>
+      <div class="leftover">
+        <span class="lo-l" id="loLabel">Left over each month</span>
+        <span class="lo-v" id="loValue">$0</span>
+      </div>
+    </div>
+
+    <!-- recommendations -->
+    <div class="recs">
+      <h3 class="section">Your personalized plan</h3>
+      <div class="rec-grid" id="recGrid"></div>
+    </div>
+
+    <div class="dash-foot">
+      <button class="restart" onclick="restart()">↺ Start a new check-up</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">© <span id="yr"></span> WealthPath · Clarity and control over your financial future · This tool is educational and not financial advice.</div>
+</footer>
+
+<script>
+"use strict";
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+/* ---------- view routing ---------- */
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  window.scrollTo({top:0,behavior:'instant'in window?'instant':'auto'});
+}
+
+/* ---------- state ---------- */
+const state = {income:null, expenses:null, savings:null, goal:null};
+let step = 0;
+const STEPS = 4;
+const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+
+/* ---------- intake ---------- */
+function startIntake(){
+  go('intake');
+  step = 0; showStep();
+  setTimeout(()=>document.getElementById('inIncome').focus(),350);
+}
+
+function showStep(){
+  document.querySelectorAll('.step').forEach(s=>s.classList.toggle('active', +s.dataset.step===step));
+  document.getElementById('progFill').style.width = ((step+1)/STEPS*100)+'%';
+  document.getElementById('progLabel').textContent = 'Step '+(step+1)+' of '+STEPS;
+  const active = document.querySelector('.step.active');
+  const inp = active.querySelector('input');
+  if(inp) setTimeout(()=>inp.focus(),300);
+}
+
+/* live meta hints under money inputs */
+function pretty(v){ return v===''||v===null ? '' : fmt(+v); }
+const incomeEl=document.getElementById('inIncome'),
+      expEl=document.getElementById('inExpenses'),
+      savEl=document.getElementById('inSavings');
+
+incomeEl.addEventListener('input',()=>{
+  const v=+incomeEl.value;
+  document.getElementById('metaIncome').textContent = incomeEl.value? 'That’s '+fmt(v*12)+' a year.' : '';
+});
+expEl.addEventListener('input',()=>{
+  const inc=+incomeEl.value, ex=+expEl.value, m=document.getElementById('metaExpenses');
+  if(!expEl.value){ m.textContent=''; m.style.color='var(--muted)'; return; }
+  if(inc>0){
+    const pct=Math.round(ex/inc*100);
+    m.textContent='You spend about '+pct+'% of your income.';
+    m.style.color = pct>100?'var(--rose)':pct>90?'var(--amber)':'var(--muted)';
+  } else m.textContent='';
+});
+savEl.addEventListener('input',()=>{
+  const inc=+incomeEl.value, ex=+expEl.value, sav=+savEl.value, m=document.getElementById('metaSavings');
+  if(!savEl.value){ m.textContent=''; return; }
+  const net=inc-ex;
+  if(net>0){ m.textContent='That’s roughly '+ (net>0?(sav/net).toFixed(1):'—') +' months of your current savings flow.'; }
+  else m.textContent='A safety net of '+fmt(sav)+' set aside.';
+});
+
+/* navigation buttons */
+document.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',nextStep));
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>{ if(step>0){step--;showStep();} }));
+
+function validateCurrent(){
+  const ids=['inIncome','inExpenses','inSavings'];
+  if(step<3){
+    const el=document.getElementById(ids[step]);
+    if(el.value===''||+el.value<0){ el.focus(); el.style.borderColor='var(--rose)';
+      setTimeout(()=>el.style.borderColor='',900); return false; }
+    return true;
+  }
+  return true;
+}
+
+function nextStep(){
+  if(!validateCurrent()) return;
+  state.income = +incomeEl.value;
+  state.expenses = +expEl.value;
+  state.savings = +savEl.value;
+  if(step<STEPS-1){ step++; showStep(); }
+}
+
+/* Enter key advances on number steps */
+[incomeEl,expEl,savEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();nextStep();} }));
+
+/* goal selection */
+document.querySelectorAll('#goalChoices .choice').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('#goalChoices .choice').forEach(x=>x.classList.remove('sel'));
+    c.classList.add('sel');
+    state.goal=c.dataset.goal;
+    document.getElementById('finishBtn').disabled=false;
+  });
+});
+document.getElementById('finishBtn').addEventListener('click',()=>{ if(state.goal){ buildDashboard(); go('dash'); } });
+
+/* ---------- analysis logic ---------- */
+const GOAL_LABELS = {save:'saving more', debt:'getting out of debt', invest:'investing', home:'buying a home'};
+
+function computeRate(){
+  if(!state.income || state.income<=0) return 0;
+  return Math.max(-100, Math.round((state.income - state.expenses)/state.income*100));
+}
+
+function healthFromRate(rate){
+  // factor: negative cashflow or zero savings pulls health down
+  if(rate < 10 || state.income<=state.expenses) return {key:'poor', label:'Poor', color:'var(--rose)',
+    desc:'Your spending is close to (or above) your income. The priority is creating breathing room each month.'};
+  if(rate < 20) return {key:'avg', label:'Average', color:'var(--amber)',
+    desc:'You’re keeping your head above water with a modest surplus. A few adjustments could accelerate your progress.'};
+  return {key:'strong', label:'Strong', color:'var(--sage)',
+    desc:'You’re saving a healthy share of your income. Now it’s about putting that surplus to work toward your goal.'};
+}
+
+function buildRecommendations(rate, health){
+  const recs=[];
+  const surplus = state.income - state.expenses;
+  const emergencyTarget = state.expenses*3;
+  const goal = state.goal;
+
+  // 1) cashflow-driven
+  if(surplus < 0){
+    recs.push({tag:'Urgent', t:'Close the monthly gap', p:'You’re spending '+fmt(Math.abs(surplus))+' more than you earn each month. Let’s review your top 3 expense categories and trim the gap first.', icon:'alert'});
+  } else if(rate < 10){
+    recs.push({tag:'Foundation', t:'Aim to save 10% first', p:'You’re saving '+rate+'% right now. Automating even '+fmt(state.income*0.10)+' a month would lift you toward a healthier savings rate.', icon:'piggy'});
+  } else if(rate < 20){
+    recs.push({tag:'Momentum', t:'Push toward a 20% rate', p:'You’re at '+rate+'%. Redirecting an extra '+fmt(state.income*0.05)+' a month would put you in the strong zone.', icon:'trend'});
+  } else {
+    recs.push({tag:'Optimize', t:'Make your surplus work', p:'You’re saving '+fmt(surplus)+' a month. Idle cash loses value to inflation — let’s give every dollar a job.', icon:'trend'});
+  }
+
+  // 2) emergency fund
+  const months = state.expenses>0 ? state.savings/state.expenses : 0;
+  if(months < 3 && goal!=='debt'){
+    recs.push({tag:'Safety', t:'Build a 3-month buffer', p:'Your savings cover about '+months.toFixed(1)+' months of expenses. Target '+fmt(emergencyTarget)+' so a surprise never derails you.', icon:'shield'});
+  }
+
+  // 3) goal-specific
+  const goalRec = {
+    save:  {tag:'Your goal', t:'Pay yourself first', p:'Set up an automatic transfer the day you’re paid. Saving before you spend is the single biggest lever for saving more.', icon:'piggy'},
+    debt:  {tag:'Your goal', t:'Attack the costliest debt', p:'List every debt by interest rate and throw your surplus at the most expensive one first while paying minimums on the rest.', icon:'debt'},
+    invest:{tag:'Your goal', t:'Start investing consistently', p:'With your surplus, regular low-cost index contributions beat trying to time the market. We’ll match the mix to your timeline.', icon:'trend'},
+    home:  {tag:'Your goal', t:'Map your deposit timeline', p:'Saving '+fmt(Math.max(surplus,state.income*0.1))+' a month builds a meaningful deposit faster than you’d think. Let’s set a target date.', icon:'home'},
+  }[goal];
+  if(goalRec) recs.push(goalRec);
+
+  return recs.slice(0,3);
+}
+
+const ICONS = {
+  alert:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+  piggy:'<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 1 3.3 2.5 4.3V19h3v-2h3v2h3v-2.5c1-.6 1.5-1.1 2-2h2v-4h-2c-.3-.7-.7-1.3-1.5-1.8L19 5z"/>',
+  trend:'<path d="M3 17l5-5 4 3 7-8"/><path d="M16 7h4v4"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  debt:'<path d="M3 6h18M3 12h18M3 18h12"/><path d="M17 16l4 4M21 16l-4 4"/>',
+  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+};
+
+/* ---------- render dashboard ---------- */
+function animateCount(el, to, prefix){
+  const dur=1100, start=performance.now();
+  function tick(now){
+    const p=Math.min(1,(now-start)/dur);
+    const e=1-Math.pow(1-p,3);
+    el.textContent=(prefix||'')+Math.round(to*e).toLocaleString('en-US');
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function buildDashboard(){
+  const rate = computeRate();
+  const health = healthFromRate(rate);
+
+  // goal line
+  document.getElementById('dashGoalLine').innerHTML =
+    'Your path to <em>'+GOAL_LABELS[state.goal]+'</em>.';
+
+  // health
+  const badge=document.getElementById('healthBadge');
+  badge.style.background = 'color-mix(in srgb,'+health.color+' 16%, transparent)';
+  badge.style.color = health.color;
+  badge.querySelector('.dot').style.background = health.color;
+  document.getElementById('healthLabel').textContent = health.label;
+  document.getElementById('healthScore').textContent = health.label;
+  document.getElementById('healthScore').style.color = health.color;
+  document.getElementById('healthDesc').textContent = health.desc;
+
+  // savings ring
+  const C = 2*Math.PI*84;
+  const ring=document.getElementById('ringFill');
+  const shown=Math.max(0,Math.min(100,rate));
+  ring.style.stroke = health.color;
+  // delay so the transition is visible after the view swaps in
+  setTimeout(()=>{ ring.style.strokeDashoffset = C*(1-shown/100); },200);
+  animateRate(document.getElementById('ringPct'), rate);
+
+  // income vs expenses bars (scaled to the larger of the two)
+  const maxV=Math.max(state.income,state.expenses,1);
+  document.getElementById('lblIncome').textContent = fmt(state.income);
+  document.getElementById('lblExpenses').textContent = fmt(state.expenses);
+  setTimeout(()=>{
+    document.getElementById('barIncome').style.width = (state.income/maxV*100)+'%';
+    document.getElementById('barExpenses').style.width = (state.expenses/maxV*100)+'%';
+  },250);
+
+  // leftover
+  const surplus=state.income-state.expenses;
+  const lo=document.getElementById('loValue');
+  document.getElementById('loLabel').textContent = surplus>=0 ? 'Left over each month' : 'Short each month';
+  lo.style.color = surplus>=0 ? 'var(--sage)' : 'var(--rose)';
+  lo.textContent = (surplus<0?'-':'')+fmt(Math.abs(surplus));
+
+  // recommendations
+  const grid=document.getElementById('recGrid');
+  grid.innerHTML='';
+  buildRecommendations(rate,health).forEach((r,i)=>{
+    const el=document.createElement('div');
+    el.className='rec reveal';
+    el.style.transitionDelay=(i*90)+'ms';
+    el.innerHTML='<span class="tag">'+r.tag+'</span>'+
+      '<div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[r.icon]+'</svg></div>'+
+      '<b>'+r.t+'</b><p>'+r.p+'</p>';
+    grid.appendChild(el);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
+  });
+}
+
+function animateRate(el,to){
+  const dur=1300,start=performance.now();
+  function tick(now){
+    const p=Math.min(1,(now-start)/dur), e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(to*e);
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- helpers ---------- */
+function restart(){
+  state.income=state.expenses=state.savings=state.goal=null;
+  incomeEl.value=expEl.value=savEl.value='';
+  document.querySelectorAll('.field-meta').forEach(m=>m.textContent='');
+  document.querySelectorAll('#goalChoices .choice').forEach(x=>x.classList.remove('sel'));
+  document.getElementById('finishBtn').disabled=true;
+  document.getElementById('ringFill').style.strokeDashoffset=2*Math.PI*84;
+  startIntake();
+}
+
+function bookFromDash(){
+  go('home');
+  setTimeout(()=>document.getElementById('book').scrollIntoView({behavior:'smooth'}),60);
+}
+
+/* ---------- booking form ---------- */
+document.getElementById('bookForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=document.getElementById('bName').value.trim();
+  const email=document.getElementById('bEmail').value.trim();
+  const time=document.getElementById('bTime').value;
+  let ok=true;
+  [['bName',name!==''],['bEmail',/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)],['bTime',time!=='']].forEach(([id,valid])=>{
+    const el=document.getElementById(id);
+    el.style.borderColor = valid?'':'var(--rose)';
+    if(!valid){ ok=false; setTimeout(()=>el.style.borderColor='',1200); }
+  });
+  if(!ok) return;
+  document.getElementById('bookForm').style.display='none';
+  const first=name.split(' ')[0];
+  document.getElementById('bookedName').textContent="You're booked in, "+first+'.';
+  document.getElementById('bookedMsg').style.display='block';
+});
+
+/* ---------- reveal on scroll ---------- */
+const io=new IntersectionObserver(es=>{
+  es.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target);} });
+},{threshold:.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
