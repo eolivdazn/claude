@@ -174,6 +174,13 @@ export async function getMovieDetails(id: number): Promise<MovieCard> {
   return toMovieCard(details);
 }
 
+async function hydrateMoviePage(results: TmdbMovie[]): Promise<MovieCard[]> {
+  const cards = await Promise.all(
+    results.map((m) => getMovieDetails(m.id).catch(() => null)),
+  );
+  return cards.filter((c): c is MovieCard => c !== null);
+}
+
 /** A page of popular movies, fully hydrated with credits. */
 export async function getPopularMovies(page = 1): Promise<MovieCard[]> {
   const data = await tmdbFetch<{ results: TmdbMovie[] }>(
@@ -181,10 +188,27 @@ export async function getPopularMovies(page = 1): Promise<MovieCard[]> {
     { page },
     ONE_HOUR,
   );
-  const cards = await Promise.all(
-    data.results.map((m) => getMovieDetails(m.id).catch(() => null)),
+  return hydrateMoviePage(data.results);
+}
+
+/** A page of top-rated movies, fully hydrated with credits. */
+export async function getTopRatedMovies(page = 1): Promise<MovieCard[]> {
+  const data = await tmdbFetch<{ results: TmdbMovie[] }>(
+    "/movie/top_rated",
+    { page },
+    ONE_HOUR,
   );
-  return cards.filter((c): c is MovieCard => c !== null);
+  return hydrateMoviePage(data.results);
+}
+
+/** Weekly trending movies, fully hydrated with credits. */
+export async function getTrendingMovies(page = 1): Promise<MovieCard[]> {
+  const data = await tmdbFetch<{ results: TmdbMovie[] }>(
+    "/trending/movie/week",
+    { page },
+    ONE_HOUR,
+  );
+  return hydrateMoviePage(data.results);
 }
 
 /** Raw (light) discover results — used as a candidate pool by the engine. */
