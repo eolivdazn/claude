@@ -16,14 +16,20 @@ export async function refreshRecommendations(): Promise<number> {
   if (!session?.user?.id) throw new Error("Not authenticated");
   const userId = session.user.id;
 
+  // Load catalog in parallel but cap it — the full catalog can be huge.
+  // Failure to load it is non-fatal; user swipe data drives recommendations.
   const [prefs, catalogRows] = await Promise.all([
     prisma.moviePreference.findMany({
       where: { userId },
       select: { movieId: true, liked: true, movieData: true },
     }),
-    prisma.globalCatalog.findMany({
-      select: { movieData: true, rating: true },
-    }),
+    prisma.globalCatalog
+      .findMany({
+        orderBy: { rating: "desc" },
+        take: 150,
+        select: { movieData: true, rating: true },
+      })
+      .catch(() => []),
   ]);
 
   const liked = prefs
@@ -39,8 +45,7 @@ export async function refreshRecommendations(): Promise<number> {
     userRating: r.rating,
   }));
 
-  // Allow generation if catalog exists even with few personal likes.
-  if (liked.length < REQUIRED_LIKES && globalCatalog.length === 0) {
+  if (liked.length < REQUIRED_LIKES) {
     throw new Error(
       "Like at least a few movies in Discover before generating recommendations.",
     );
