@@ -29,16 +29,31 @@ type Status = "loading" | "ready" | "error";
 
 export function SwipeDeck({
   initialRatedCount = 0,
+  initialLikedCount = 0,
+  requiredLikes = 3,
 }: {
   initialRatedCount?: number;
+  initialLikedCount?: number;
+  requiredLikes?: number;
 }) {
   const [queue, setQueue] = useState<MovieCard[]>([]);
   const [index, setIndex] = useState(0);
   const [status, setStatus] = useState<Status>("loading");
   const [errorMsg, setErrorMsg] = useState("");
   const [ratedCount, setRatedCount] = useState(initialRatedCount);
+  const [likedCount, setLikedCount] = useState(initialLikedCount);
+  const [likedBaseline, setLikedBaseline] = useState(initialLikedCount);
   const [flyOut, setFlyOut] = useState<SwipeDirection | null>(null);
   const nextPageRef = useRef(1);
+
+  // Read the checkpoint written by the recommendations page so progress
+  // resets after each visit rather than counting all-time likes.
+  useEffect(() => {
+    const stored = localStorage.getItem("likedCountBaseline");
+    if (stored !== null) {
+      setLikedBaseline(Math.min(parseInt(stored, 10), initialLikedCount));
+    }
+  }, [initialLikedCount]);
 
   const loadMovies = useCallback(async () => {
     setStatus("loading");
@@ -76,7 +91,6 @@ export function SwipeDeck({
       setFlyOut(null);
       if (!movie) return;
 
-      // Advance the visible deck immediately for snappy UX.
       setIndex((i) => i + 1);
 
       try {
@@ -85,11 +99,11 @@ export function SwipeDeck({
           direction === "right",
         );
         setRatedCount(result.totalRated);
+        setLikedCount(result.likedCount);
       } catch {
         // Non-fatal: keep swiping even if a single write fails.
       }
 
-      // Prefetch the next page when nearing the end of the queue.
       if (index + 2 >= queue.length) {
         void loadMovies();
       }
@@ -128,18 +142,34 @@ export function SwipeDeck({
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-6">
-      {/* Swiping fine-tunes your profile; recommendations come from it. */}
-      <div className="flex w-full items-center justify-between text-xs text-[var(--color-muted)]">
-        <span>{ratedCount} rated</span>
-        <Link
-          href="/recommendations"
-          className="font-medium text-[var(--color-primary)] hover:underline"
-        >
-          See your pick →
-        </Link>
-      </div>
+      {(() => {
+        const likedSince = Math.max(0, likedCount - likedBaseline);
+        if (likedSince >= requiredLikes) {
+          return (
+            <Link
+              href="/recommendations"
+              className="flex w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+            >
+              ✨ Your pick is ready — see it now
+            </Link>
+          );
+        }
+        return (
+          <div className="w-full space-y-1">
+            <div className="flex items-center justify-between text-xs text-[var(--color-muted)]">
+              <span>{ratedCount} rated</span>
+              <span>{likedSince}/{requiredLikes} likes for a new pick</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-[var(--color-primary)] transition-all"
+                style={{ width: `${Math.min(100, (likedSince / requiredLikes) * 100)}%` }}
+              />
+            </div>
+          </div>
+        );
+      })()}
 
-      {/* Card stack: a static scaled "next" card behind the interactive top card. */}
       <div className="relative aspect-[2/3] w-full">
         {next && (
           <div

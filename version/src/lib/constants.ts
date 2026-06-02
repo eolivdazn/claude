@@ -1,8 +1,7 @@
 // Shared constants safe to import from both client and server modules.
 
 /**
- * Minimum number of liked movies before recommendations can be generated.
- * The taste profile is primarily seeded from a Letterboxd import, so this is
- * just a non-empty guard rather than a swipe gate.
+ * Minimum number of *liked* movies the engine needs before it can produce
+ * a meaningful recommendation. Swiping left (dislike) does not count.
  */
-export const REQUIRED_RATINGS = 1;
+export const REQUIRED_LIKES = 3;

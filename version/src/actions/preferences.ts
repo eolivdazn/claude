@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { MovieSnapshot } from "@/types";
-import { REQUIRED_RATINGS } from "@/lib/constants";
+import { REQUIRED_LIKES } from "@/lib/constants";
 
 interface SwipeResult {
   totalRated: number;
+  likedCount: number;
   readyForRecommendations: boolean;
 }
 
@@ -41,19 +42,28 @@ export async function recordSwipe(
     },
   });
 
-  const totalRated = await prisma.moviePreference.count({ where: { userId } });
+  const [totalRated, likedCount] = await Promise.all([
+    prisma.moviePreference.count({ where: { userId } }),
+    prisma.moviePreference.count({ where: { userId, liked: true } }),
+  ]);
 
   revalidatePath("/dashboard");
 
   return {
     totalRated,
-    readyForRecommendations: totalRated >= REQUIRED_RATINGS,
+    likedCount,
+    readyForRecommendations: likedCount >= REQUIRED_LIKES,
   };
 }
 
-/** How many movies the current user has rated so far. */
-export async function getRatedCount(): Promise<number> {
+/** How many movies the current user has rated and liked so far. */
+export async function getRatedCount(): Promise<{ totalRated: number; likedCount: number }> {
   const session = await auth();
-  if (!session?.user?.id) return 0;
-  return prisma.moviePreference.count({ where: { userId: session.user.id } });
+  if (!session?.user?.id) return { totalRated: 0, likedCount: 0 };
+  const userId = session.user.id;
+  const [totalRated, likedCount] = await Promise.all([
+    prisma.moviePreference.count({ where: { userId } }),
+    prisma.moviePreference.count({ where: { userId, liked: true } }),
+  ]);
+  return { totalRated, likedCount };
 }

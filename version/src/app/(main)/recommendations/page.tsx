@@ -8,6 +8,7 @@ import {
 } from "@/components/SingleRecommendation";
 import { RegenerateButton } from "@/components/RegenerateButton";
 import { EmptyState } from "@/components/EmptyState";
+import { LikedCountCheckpoint } from "@/components/LikedCountCheckpoint";
 
 export const metadata = { title: "For You — Movie Match" };
 export const dynamic = "force-dynamic";
@@ -29,15 +30,21 @@ export default async function RecommendationsPage() {
 
   const likedCount = likedPrefs.length;
 
+  // Stamp the current liked count so discover resets its progress bar.
+  const checkpoint = <LikedCountCheckpoint likedCount={likedCount} />;
+
   // No taste profile yet — guide the user to import or swipe.
   if (likedCount === 0) {
     return (
-      <EmptyState
-        icon="🎬"
-        title="No taste profile yet"
-        description="Import your Letterboxd ratings (npm run import:letterboxd) or like a few movies in Discover, then we'll find your perfect match."
-        action={{ label: "Go to Discover", href: "/discover" }}
-      />
+      <>
+        {checkpoint}
+        <EmptyState
+          icon="🎬"
+          title="No taste profile yet"
+          description="Import your Letterboxd ratings (npm run import:letterboxd) or like a few movies in Discover, then we'll find your perfect match."
+          action={{ label: "Go to Discover", href: "/discover" }}
+        />
+      </>
     );
   }
 
@@ -45,6 +52,7 @@ export default async function RecommendationsPage() {
   if (recommendations.length === 0) {
     return (
       <div className="space-y-6">
+        {checkpoint}
         <EmptyState
           icon="✨"
           title="Ready when you are"
@@ -71,6 +79,7 @@ export default async function RecommendationsPage() {
 
   return (
     <div className="space-y-6">
+      {checkpoint}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">

@@ -1,10 +1,11 @@
 import { getRatedCount } from "@/actions/preferences";
 import { SwipeDeck } from "@/components/SwipeDeck";
+import { REQUIRED_LIKES } from "@/lib/constants";
 
 export const metadata = { title: "Discover — Movie Match" };
 
 export default async function DiscoverPage() {
-  const ratedCount = await getRatedCount();
+  const { totalRated, likedCount } = await getRatedCount();
 
   return (
     <div className="space-y-6">
@@ -16,7 +17,12 @@ export default async function DiscoverPage() {
           Swipe right to like, left to pass.
         </p>
       </div>
-      <SwipeDeck initialRatedCount={ratedCount} />
+      <SwipeDeck
+        initialRatedCount={totalRated}
+        initialLikedCount={likedCount}
+        requiredLikes={REQUIRED_LIKES}
+      />
     </div>
   );
 }
+

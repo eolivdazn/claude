@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateRecommendations } from "@/lib/recommendation";
 import type { MovieSnapshot } from "@/types";
-import { REQUIRED_RATINGS } from "@/lib/constants";
+import { REQUIRED_LIKES } from "@/lib/constants";
 
 /**
  * Run the recommendation engine for the current user and persist the result,
@@ -24,16 +24,19 @@ export async function refreshRecommendations(): Promise<number> {
   const liked = prefs
     .filter((p) => p.liked)
     .map((p) => p.movieData as unknown as MovieSnapshot);
+  const disliked = prefs
+    .filter((p) => !p.liked)
+    .map((p) => p.movieData as unknown as MovieSnapshot);
   const swipedIds = prefs.map((p) => p.movieId);
 
-  if (liked.length < REQUIRED_RATINGS) {
+  if (liked.length < REQUIRED_LIKES) {
     throw new Error(
       "Like at least one movie (or run the Letterboxd import) before generating recommendations.",
     );
   }
 
   // Rank the top matches; the UI shows one at a time ("Show another").
-  const scored = await generateRecommendations(liked, swipedIds, 10);
+  const scored = await generateRecommendations(liked, disliked, swipedIds, 10);
 
   // Replace the previous set atomically.
   await prisma.$transaction([
