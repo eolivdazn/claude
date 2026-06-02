@@ -30,14 +30,11 @@ export default async function RecommendationsPage() {
 
   const likedCount = likedPrefs.length;
 
-  // Stamp the current liked count so discover resets its progress bar.
-  const checkpoint = <LikedCountCheckpoint likedCount={likedCount} />;
-
-  // No personal likes yet — nudge toward Discover (catalog still powers recommendations).
+  // No personal likes yet — nudge toward Discover.
   if (likedCount === 0) {
     return (
       <>
-        {checkpoint}
+        <LikedCountCheckpoint likedCount={likedCount} />
         <EmptyState
           icon="🎬"
           title="Like a movie to personalise your pick"
@@ -52,7 +49,7 @@ export default async function RecommendationsPage() {
   if (recommendations.length === 0) {
     return (
       <div className="space-y-6">
-        {checkpoint}
+        <LikedCountCheckpoint likedCount={likedCount} />
         <EmptyState
           icon="✨"
           title="Ready when you are"
@@ -79,7 +76,7 @@ export default async function RecommendationsPage() {
 
   return (
     <div className="space-y-6">
-      {checkpoint}
+      <LikedCountCheckpoint likedCount={likedCount} />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
