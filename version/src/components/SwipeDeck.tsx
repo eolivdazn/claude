@@ -104,6 +104,22 @@ export function SwipeDeck({
         // Non-fatal: keep swiping even if a single write fails.
       }
 
+      // After a dislike, push same-genre cards to the back so the user
+      // gets immediate variety. queue[index+1] is already on screen, so
+      // we only reorder from index+2 onwards to avoid a visible flicker.
+      if (direction === "left") {
+        const dislikedGenres = new Set(movie.genres.map((g) => g.id));
+        const visibleUpTo = index + 2;
+        const rest = queue.slice(visibleUpTo);
+        const different = rest.filter((m) => !m.genres.some((g) => dislikedGenres.has(g.id)));
+        const sameGenre = rest.filter((m) => m.genres.some((g) => dislikedGenres.has(g.id)));
+        if (sameGenre.length > 0) {
+          setQueue([...queue.slice(0, visibleUpTo), ...different, ...sameGenre]);
+          if (different.length < 3) void loadMovies();
+          return;
+        }
+      }
+
       if (index + 2 >= queue.length) {
         void loadMovies();
       }
