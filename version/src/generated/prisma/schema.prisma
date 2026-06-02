@@ -1,0 +1,69 @@
+// Prisma schema for Movie Match
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("PRISMA_DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  preferences     MoviePreference[]
+  recommendations Recommendation[]
+}
+
+/// One row per movie a user swipes. `movieData` stores a snapshot
+/// (title, posterPath, year, genres, topCast, director) so the
+/// recommendation engine and dashboard never need to re-query TMDB.
+model MoviePreference {
+  id        String   @id @default(cuid())
+  userId    String
+  movieId   Int
+  liked     Boolean
+  movieData Json
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId])
+}
+
+/// Persisted recommendation set. Regenerated (replaced) each time the
+/// engine runs. `reasons` holds the human-readable "why" strings and
+/// `movieData` a lightweight snapshot for the results page.
+model Recommendation {
+  id        String   @id @default(cuid())
+  userId    String
+  movieId   Int
+  score     Float
+  reasons   String[]
+  movieData Json
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Curated movie catalog imported from Letterboxd (or any source).
+/// Shared across all users — not tied to any account.
+/// The recommendation engine uses this as a baseline taste signal.
+model GlobalCatalog {
+  id        String   @id @default(cuid())
+  movieId   Int      @unique
+  movieData Json
+  rating    Float
+  createdAt DateTime @default(now())
+}
