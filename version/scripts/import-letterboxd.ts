@@ -1,13 +1,12 @@
 /**
- * Import a Letterboxd ratings.csv export as the current user's "liked"
- * movie preferences, so the recommendation engine and dashboard are driven
- * by real ratings.
+ * Import a Letterboxd ratings.csv export into the global catalog.
+ * The catalog is shared across all users and drives the recommendation
+ * engine as a baseline taste signal — no user account needed.
  *
  * Usage:
- *   npm run import:letterboxd            # uses the first user in the DB
- *   npm run import:letterboxd <email>    # targets a specific user
+ *   npm run import:letterboxd
  *
- * Requires DATABASE_URL and TMDB_API_KEY (loaded from .env via --env-file).
+ * Requires DATABASE_URL, PRISMA_DATABASE_URL, and TMDB_API_KEY (loaded from .env).
  */
 import { prisma } from "@/lib/prisma";
 import { readLetterboxdRatings, letterboxdCsvPath } from "@/lib/letterboxd";
@@ -42,22 +41,6 @@ async function mapPool<T, R>(
 }
 
 async function main() {
-  const email = process.argv[2];
-
-  const user = email
-    ? await prisma.user.findUnique({ where: { email } })
-    : await prisma.user.findFirst({ orderBy: { createdAt: "asc" } });
-
-  if (!user) {
-    console.error(
-      email
-        ? `No user found with email "${email}". Register first.`
-        : "No users in the database. Register an account first.",
-    );
-    process.exit(1);
-  }
-
-  console.log(`Importing ratings for: ${user.email} (${user.id})`);
   console.log(`Reading: ${letterboxdCsvPath()}`);
 
   const ratings = await readLetterboxdRatings(MIN_RATING);
@@ -104,34 +87,28 @@ async function main() {
   }
 
   console.log(
-    `Resolved ${resolved}, unresolved ${unresolved}, unique ${byId.size}. Writing to DB…`,
+    `Resolved ${resolved}, unresolved ${unresolved}, unique ${byId.size}. Writing to global catalog…`,
   );
 
   let written = 0;
   for (const snapshot of byId.values()) {
-    await prisma.moviePreference.upsert({
-      where: { userId_movieId: { userId: user.id, movieId: snapshot.id } },
+    await prisma.globalCatalog.upsert({
+      where: { movieId: snapshot.id },
       create: {
-        userId: user.id,
         movieId: snapshot.id,
-        liked: true,
         movieData: snapshot as unknown as object,
+        rating: snapshot.userRating ?? MIN_RATING,
       },
       update: {
-        liked: true,
         movieData: snapshot as unknown as object,
+        rating: snapshot.userRating ?? MIN_RATING,
       },
     });
     written++;
   }
 
-  // Clear any stale recommendations so they regenerate from the new profile.
-  await prisma.recommendation.deleteMany({ where: { userId: user.id } });
-
-  console.log(`✅ Imported ${written} liked movies for ${user.email}.`);
-  console.log(
-    "Open /recommendations and click Generate to get your single best match.",
-  );
+  console.log(`✅ Imported ${written} movies into the global catalog.`);
+  console.log("All users will now benefit from this catalog in recommendations.");
 }
 
 main()

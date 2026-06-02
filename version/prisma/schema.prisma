@@ -55,3 +55,14 @@ model Recommendation {
 
   @@index([userId])
 }
+
+/// Curated movie catalog imported from Letterboxd (or any source).
+/// Shared across all users — not tied to any account.
+/// The recommendation engine uses this as a baseline taste signal.
+model GlobalCatalog {
+  id        String   @id @default(cuid())
+  movieId   Int      @unique
+  movieData Json
+  rating    Float
+  createdAt DateTime @default(now())
+}

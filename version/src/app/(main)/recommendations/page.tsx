@@ -33,15 +33,15 @@ export default async function RecommendationsPage() {
   // Stamp the current liked count so discover resets its progress bar.
   const checkpoint = <LikedCountCheckpoint likedCount={likedCount} />;
 
-  // No taste profile yet — guide the user to import or swipe.
+  // No personal likes yet — nudge toward Discover (catalog still powers recommendations).
   if (likedCount === 0) {
     return (
       <>
         {checkpoint}
         <EmptyState
           icon="🎬"
-          title="No taste profile yet"
-          description="Import your Letterboxd ratings (npm run import:letterboxd) or like a few movies in Discover, then we'll find your perfect match."
+          title="Like a movie to personalise your pick"
+          description="Head to Discover and swipe right on something you enjoy. The more you like, the more tailored your recommendation becomes."
           action={{ label: "Go to Discover", href: "/discover" }}
         />
       </>

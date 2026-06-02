@@ -16,10 +16,15 @@ export async function refreshRecommendations(): Promise<number> {
   if (!session?.user?.id) throw new Error("Not authenticated");
   const userId = session.user.id;
 
-  const prefs = await prisma.moviePreference.findMany({
-    where: { userId },
-    select: { movieId: true, liked: true, movieData: true },
-  });
+  const [prefs, catalogRows] = await Promise.all([
+    prisma.moviePreference.findMany({
+      where: { userId },
+      select: { movieId: true, liked: true, movieData: true },
+    }),
+    prisma.globalCatalog.findMany({
+      select: { movieData: true, rating: true },
+    }),
+  ]);
 
   const liked = prefs
     .filter((p) => p.liked)
@@ -29,14 +34,20 @@ export async function refreshRecommendations(): Promise<number> {
     .map((p) => p.movieData as unknown as MovieSnapshot);
   const swipedIds = prefs.map((p) => p.movieId);
 
-  if (liked.length < REQUIRED_LIKES) {
+  const globalCatalog: MovieSnapshot[] = catalogRows.map((r) => ({
+    ...(r.movieData as unknown as MovieSnapshot),
+    userRating: r.rating,
+  }));
+
+  // Allow generation if catalog exists even with few personal likes.
+  if (liked.length < REQUIRED_LIKES && globalCatalog.length === 0) {
     throw new Error(
-      "Like at least one movie (or run the Letterboxd import) before generating recommendations.",
+      "Like at least a few movies in Discover before generating recommendations.",
     );
   }
 
   // Rank the top matches; the UI shows one at a time ("Show another").
-  const scored = await generateRecommendations(liked, disliked, swipedIds, 10);
+  const scored = await generateRecommendations(liked, disliked, globalCatalog, swipedIds, 10);
 
   // Replace the previous set atomically.
   await prisma.$transaction([

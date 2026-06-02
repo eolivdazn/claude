@@ -358,20 +358,73 @@ function scoreMovie(
 }
 
 /**
+ * Merge a catalog profile into a user profile at a reduced weight.
+ * Catalog signals fill in for users with few personal swipes and fade
+ * as the user builds up their own taste profile.
+ */
+function mergeProfiles(userProfile: LikedProfile, catalogProfile: LikedProfile): LikedProfile {
+  const CATALOG_WEIGHT = 0.5;
+
+  const merge = (target: Map<number | string, number>, source: Map<number | string, number>) => {
+    for (const [key, val] of source) {
+      // Type cast needed because Maps with union keys require it
+      (target as Map<typeof key, number>).set(
+        key,
+        ((target as Map<typeof key, number>).get(key) ?? 0) + val * CATALOG_WEIGHT,
+      );
+    }
+  };
+
+  const merged: LikedProfile = {
+    genres: new Map(userProfile.genres),
+    genreNames: new Map([...catalogProfile.genreNames, ...userProfile.genreNames]),
+    actors: new Map(userProfile.actors),
+    directors: new Map(userProfile.directors),
+    likedMovieIds: [
+      ...userProfile.likedMovieIds,
+      ...catalogProfile.likedMovieIds.filter((id) => !userProfile.likedMovieIds.includes(id)),
+    ],
+    highRatedGenres: new Map(userProfile.highRatedGenres),
+    highRatedActors: new Map(userProfile.highRatedActors),
+    highRatedDirectors: new Map(userProfile.highRatedDirectors),
+    highRatedMovieIds: [
+      ...userProfile.highRatedMovieIds,
+      ...catalogProfile.highRatedMovieIds.filter((id) => !userProfile.highRatedMovieIds.includes(id)),
+    ],
+  };
+
+  merge(merged.genres as Map<number | string, number>, catalogProfile.genres as Map<number | string, number>);
+  merge(merged.actors as Map<number | string, number>, catalogProfile.actors as Map<number | string, number>);
+  merge(merged.directors as Map<number | string, number>, catalogProfile.directors as Map<number | string, number>);
+  merge(merged.highRatedGenres as Map<number | string, number>, catalogProfile.highRatedGenres as Map<number | string, number>);
+  merge(merged.highRatedActors as Map<number | string, number>, catalogProfile.highRatedActors as Map<number | string, number>);
+  merge(merged.highRatedDirectors as Map<number | string, number>, catalogProfile.highRatedDirectors as Map<number | string, number>);
+
+  return merged;
+}
+
+/**
  * Generate the top-N recommendations for a user given their liked and
- * disliked movies. Disliked signals are used to penalize candidates that
- * share strong negative patterns (actors, directors, genres).
+ * disliked movies plus a global curated catalog.
+ * The catalog provides a baseline taste signal for all users; personal
+ * swipes dominate as they accumulate.
  * Returns scored snapshots sorted by score descending.
  */
 export async function generateRecommendations(
   liked: MovieSnapshot[],
   disliked: MovieSnapshot[],
+  globalCatalog: MovieSnapshot[],
   swipedMovieIds: number[],
   limit = 10,
 ): Promise<ScoredRecommendation[]> {
-  if (liked.length === 0) return [];
+  if (liked.length === 0 && globalCatalog.length === 0) return [];
 
-  const profile = buildProfile(liked);
+  const userProfile = buildProfile(liked);
+  const catalogProfile = buildProfile(globalCatalog);
+  const profile = liked.length > 0
+    ? mergeProfiles(userProfile, catalogProfile)
+    : catalogProfile;
+
   const dislikedProfile = buildDislikedProfile(disliked);
   const exclude = new Set<number>(swipedMovieIds);
 

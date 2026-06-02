@@ -4,4 +4,4 @@
  * Minimum number of *liked* movies the engine needs before it can produce
  * a meaningful recommendation. Swiping left (dislike) does not count.
  */
-export const REQUIRED_LIKES = 3;
+export const REQUIRED_LIKES = 1;
