@@ -3,7 +3,7 @@ name: Provision Infrastructure (Pulumi)
 on:
   # Run automatically when infra code changes
   push:
-    branches: [main]
+    branches: [main,mv]
     paths:
       - "infra/**"
   # Allow manual trigger from GitHub UI
