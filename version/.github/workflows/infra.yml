@@ -1,0 +1,71 @@
+name: Provision Infrastructure (Pulumi)
+
+on:
+  # Run automatically when infra code changes
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  pulumi:
+    name: pulumi up
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install infra dependencies
+        run: npm install
+        working-directory: infra
+
+      # Bootstrap SP credentials — created once manually (see below).
+      # Required GitHub secrets:
+      #   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+      #   PULUMI_ACCESS_TOKEN — from app.pulumi.com (free account)
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Pulumi up
+        uses: pulumi/actions@v5
+        with:
+          command: up
+          stack-name: prod
+          work-dir: infra
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET:   ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # After the first successful run, print the outputs so you can
+      # copy ACR_LOGIN_SERVER and the GitHub deploy secrets into the repo.
+      - name: Show stack outputs
+        uses: pulumi/actions@v5
+        with:
+          command: output
+          stack-name: prod
+          work-dir: infra
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET:   ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

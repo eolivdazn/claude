@@ -1,0 +1,17 @@
+{
+  "name": "movie-match-infra",
+  "version": "1.0.0",
+  "main": "bin/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@pulumi/azure-native": "^2.0.0",
+    "@pulumi/azuread": "^5.0.0",
+    "@pulumi/pulumi": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  }
+}

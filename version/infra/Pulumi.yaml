@@ -1,0 +1,3 @@
+name: movie-match-infra
+runtime: nodejs
+description: Azure infrastructure for Movie Match (resource group, ACR, AKS, CI service principal)
