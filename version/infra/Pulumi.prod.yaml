@@ -1,0 +1,6 @@
+config:
+  azure-native:location: eastus
+  movie-match-infra:location: eastus
+  movie-match-infra:nodeCount: "2"
+  movie-match-infra:nodeVmSize: Standard_B2s
+  movie-match-infra:kubernetesVersion: "1.30"

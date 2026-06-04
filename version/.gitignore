@@ -29,5 +29,12 @@ next-env.d.ts
 
 # prisma
 /prisma/dev.db
+
+# kubernetes — never commit secrets with real values
+k8s/secret.yaml
+
+# pulumi infra dependencies
+infra/node_modules
+infra/bin
 .vercel
 .env*

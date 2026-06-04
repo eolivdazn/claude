@@ -1,0 +1,75 @@
+name: Build & Deploy to AKS
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "infra/**"
+      - "k8s/**"
+      - ".github/workflows/infra.yml"
+
+env:
+  # Set ACR_LOGIN_SERVER from `pulumi stack output acrLoginServer` after first `pulumi up`
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+  AKS_CLUSTER: movie-match-cluster
+  AKS_RESOURCE_GROUP: rg-movie-match
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Credentials come from the Service Principal created by Pulumi.
+      # Required GitHub secrets (from `pulumi stack output githubSecrets --show-secrets`):
+      #   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+      #   ACR_LOGIN_SERVER (from `pulumi stack output acrLoginServer`)
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Login to ACR
+        run: az acr login --name $(echo $ACR_LOGIN_SERVER | cut -d. -f1)
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE=$ACR_LOGIN_SERVER/movie-match:$GITHUB_SHA
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER }}
+          subscription: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run database migrations
+        run: |
+          sed "s|PLACEHOLDER_IMAGE|$IMAGE|g" k8s/migrate-job.yaml \
+            | kubectl apply -f -
+          kubectl wait --for=condition=complete \
+            job/movie-match-migrate \
+            -n movie-match \
+            --timeout=120s
+          kubectl delete job movie-match-migrate -n movie-match
+
+      - name: Deploy to AKS
+        run: |
+          kubectl set image deployment/movie-match \
+            app=$IMAGE \
+            -n movie-match
+          kubectl rollout status deployment/movie-match \
+            -n movie-match \
+            --timeout=180s

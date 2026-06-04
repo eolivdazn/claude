@@ -1,0 +1,27 @@
+# Requires NGINX Ingress Controller + cert-manager installed on the cluster.
+# Replace HOST with your domain. TLS cert is issued automatically via Let's Encrypt.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movie-match
+  namespace: movie-match
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - your-domain.com
+      secretName: movie-match-tls
+  rules:
+    - host: your-domain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: movie-match
+                port:
+                  number: 80
