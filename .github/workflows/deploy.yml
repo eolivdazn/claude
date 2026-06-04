@@ -2,7 +2,7 @@ name: Build & Deploy to AKS
 
 on:
   push:
-    branches: [main]
+    branches: [main,mv]
     paths-ignore:
       - "infra/**"
       - "k8s/**"
@@ -39,7 +39,11 @@ jobs:
             }
 
       - name: Login to ACR
-        run: az acr login --name $(echo $ACR_LOGIN_SERVER | cut -d. -f1)
+        uses: docker/login-action@v3
+        with:
+          registry: moviematchacr.azurecr.io
+          username: ${{ secrets.AZURE_CLIENT_ID }}
+          password: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Build and push Docker image
         run: |
